@@ -1,0 +1,103 @@
+---
+title: "Assignment_1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Install library and set working directory.
+```{r, echo = False}
+library(dplyr)
+library(ggplot2)
+library(TTR)
+
+setwd("C:/Users/bobon/Desktop/RAssignment")
+
+corona <- read.csv("coronavirus13dec21.csv")
+```
+
+See data's structure.
+```{r, echo = False}
+dim(corona)
+str(corona)
+```
+
+Convert to tibble.
+```{r}
+corona <- tibble(corona)
+summary(corona)
+```
+
+Convert data to appropriate type.
+```{r}
+corona$country <- as.factor(corona$country)
+corona$type <- as.factor(corona$type)
+corona$date <- as.Date(corona$date)
+summary(corona)
+head(corona)
+```
+
+Get only cases which are confirmed and in Thailand.
+```{r}
+thailand_confirmed <- filter(corona, type == "confirmed" & country == "Thailand")
+head(thailand_confirmed)
+```
+
+Plot #1 figure.
+```{r}
+ggplot(data = thailand_confirmed, mapping = aes(x = date, y = cases)) +
+  geom_col() +
+  labs(x = "Date", y = "Daily confirmed cases", title = "Thailand daily confirmed cases")
+```
+
+Plot #2 figure.
+```{r}
+five_country_confirmed_cases <- filter(corona, is.na(province), type == "confirmed", country %in% c("Germany", "South Africa", "Thailand", "United Kingdom", "US"))
+by_country <- group_by(five_country_confirmed_cases, country)
+summarised <- summarise(by_country, sum_cases = cumsum(cases))
+mutated <- mutate(five_country_confirmed_cases, cumulative_sum = summarised$sum_cases)
+ggplot(data = mutated, mapping = aes(x = date, y = cumulative_sum, color = country)) +
+  geom_line(size = 1) +
+  labs(x = "Date", y = "Total cases", title = "Cumulative confirmed cases")
+```
+
+Plot #3 figure.
+```{r}
+five_country_confirmed_cases_germany <- filter(corona, is.na(province), type == "confirmed", country == "Germany")
+mutated_germany <- mutate(five_country_confirmed_cases_germany, daily_per_million = cases / population * 1000000)
+moving_avg_germany <- SMA(mutated_germany$daily_per_million, 7)
+mutated_germany <- mutate(mutated_germany, moving_avg = moving_avg_germany)
+
+five_country_confirmed_cases_south_africa <- filter(corona, is.na(province), type == "confirmed", country == "South Africa")
+mutated_south_africa <- mutate(five_country_confirmed_cases_south_africa, daily_per_million = cases / population * 1000000)
+moving_avg_south_africa <- SMA(mutated_south_africa$daily_per_million, 7)
+mutated_south_africa <- mutate(mutated_south_africa, moving_avg = moving_avg_south_africa)
+
+five_country_confirmed_cases_thailand <- filter(corona, is.na(province), type == "confirmed", country == "Thailand")
+mutated_thailand <- mutate(five_country_confirmed_cases_thailand, daily_per_million = cases / population * 1000000)
+moving_avg_thailand <- SMA(mutated_thailand$daily_per_million, 7)
+mutated_thailand <- mutate(mutated_thailand, moving_avg = moving_avg_thailand)
+
+five_country_confirmed_cases_united_kingdom <- filter(corona, is.na(province), type == "confirmed", country == "United Kingdom")
+mutated_united_kingdom <- mutate(five_country_confirmed_cases_united_kingdom, daily_per_million = cases / population * 1000000)
+moving_avg_united_kingdom <- SMA(mutated_united_kingdom$daily_per_million, 7)
+mutated_united_kingdom <- mutate(mutated_united_kingdom, moving_avg = moving_avg_united_kingdom)
+
+five_country_confirmed_cases_us <- filter(corona, is.na(province), type == "confirmed", country == "US")
+mutated_us <- mutate(five_country_confirmed_cases_us, daily_per_million = cases / population * 1000000)
+moving_avg_us <- SMA(mutated_us$daily_per_million, 7)
+mutated_us <- mutate(mutated_us, moving_avg = moving_avg_us)
+
+five_country_confirmed_cases <- filter(corona, is.na(province), type == "confirmed", country %in% c("Germany", "South Africa", "Thailand", "United Kingdom", "US"))
+
+composed_plot <- tibble(five_country_confirmed_cases$country)
+composed_plot <- mutate(composed_plot, moving_avg = c(moving_avg_germany, moving_avg_south_africa, moving_avg_thailand, moving_avg_united_kingdom, moving_avg_us))
+composed_plot <- mutate(composed_plot, date = five_country_confirmed_cases$date)
+composed_plot <- composed_plot %>% rename(country = "five_country_confirmed_cases$country")
+
+ggplot(data = composed_plot, mapping = aes(x = date, y = moving_avg, color = country)) +
+  geom_line(size = 1) +
+  labs(title = "7-day moving average of daily cases per 1 million", x = "Date", y = "Daily cases / 1 million")
+```
