@@ -7,4 +7,38 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#Install necessary packages.
+```{r}
+library(prophet)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+```
 
+#Read data from url.
+```{r}
+data <- read.csv('https://raw.githubusercontent.com/NestZ/r-assignment/main/train.csv')
+data <- tibble(data)
+```
+
+#Create date column.
+```{r}
+data <- mutate(data, date = paste(year - 543, paste(month + 1, '02', sep = '-'), sep = '-'))
+data$date <- as.Date(as.POSIXct(data$date, format = '%Y-%m-%d'))
+data <- arrange(data, date)
+```
+
+#Convert avg_passenger_per_day to numeric type.
+```{r}
+data$avg_passenger_per_day <- str_remove_all(data$avg_passenger_per_day, "[ ,]")
+data$avg_passenger_per_day <- as.numeric(data$avg_passenger_per_day)
+```
+
+#Predict next 12 month using prophet.
+```{r}
+sl <- select(data, ds = date, y = avg_passenger_per_day)
+try <- prophet(sl, seasonality.mode = 'multiplicative')
+future <- make_future_dataframe(try, periods = 12, freq = 'month')
+forecast <- predict(try, future)
+plot(try, forecast)
+```
