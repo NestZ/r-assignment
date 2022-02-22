@@ -1,0 +1,39 @@
+---
+title: "Assignment3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Install required library
+```{r}
+library(ggplot2)
+```
+
+#Set random seed
+```{r}
+set.seed(123)
+```
+
+#Plot exponential density function with rate = 1.5
+```{r}
+randExp <- rexp(30000, rate = 1.5)
+randDensity <- dexp(randExp, 1.5)
+plt <- ggplot(data.frame(x = randExp, y = randDensity)) + aes(x = x, y = y) +
+  geom_line() + labs(x = "x", y = "Density", title = "Thaneat Saithong 610610587")
+```
+
+#Use polygon to highlight area from P(1) to P(2)
+```{r}
+sq <- seq(from = 1, to = 2, by = 0.05)
+sq_df <- data.frame(x = sq, y = dexp(sq, rate = 1.5))
+rng <- rbind(c(min(sq_df$x), 0), sq_df, c(max(sq_df$x), 0))
+plt + geom_polygon(data = rng, aes(x = x, y = y))
+```
+
+#2 P(x | x is between 1 and 2)
+```{r}
+pexp(2, rate = 1.5) - pexp(1, rate = 1.5)
+```
